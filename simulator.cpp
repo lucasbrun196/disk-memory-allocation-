@@ -456,7 +456,6 @@ void instructionAllocation(vb &disk, int locType){
                 break;
             }
         }
-
     } while (true);
 }
 
@@ -485,7 +484,6 @@ int main(){
         if(allocation_type == 1 || allocation_type == 2 || allocation_type == 3) break;
         else cout << WARNING_TEXT "OPCAO INVALIDA" << END_COLOR << endl << endl;
     }
-
     instructionAllocation(disk, allocation_type);  
     return 0;
 }
