@@ -4,6 +4,7 @@
 #include <set>
 #include <algorithm>
 #include <cctype>
+#include <limits>
 
 using namespace std;
 
@@ -59,7 +60,7 @@ bool findInFileDescriptor(string &file_name){
 }
 
 void deleteFileInDescriptor(string &file_name){
-    for(int i = 0; i < file_descriptor.size(); ++i){
+    for(size_t i = 0; i < file_descriptor.size(); ++i){
         if(file_name == file_descriptor[i]->file_name){
             file_descriptor.erase(file_descriptor.begin() + i);
             break;
@@ -109,7 +110,7 @@ void showLinkedBlocks(Block *&block){
 }
 
 void showIndexTable(Block *&block){
-    int cont = 0;
+    size_t cont = 0;
     cout << "[  ";
     for(Block *b: block->nexts_blocks){
         cout << b->block_index;
@@ -148,7 +149,7 @@ void showTableFileInDescriptor(vb &disk){
 
 void showDiskMemory(vb &disk){
     cout << "|===============================================================================================|\n";
-    for(int i = 0; i < disk.size(); ++i){
+    for(size_t i = 0; i < disk.size(); ++i){
         if(i % 4 == 0) cout << endl;
         cout << " [ " << disk[i]->color << disk[i]->block_index << END_COLOR << " ] "; 
     }
@@ -183,14 +184,14 @@ void contiguousFileCreate(vb &disk){
     bool find_space_flag;
     logic_blocks_num_cin = fileInfo.logic_blocks_num_info;
     file_name_cin = fileInfo.file_name_info;
-    for(int i = 0; i < disk.size(); ++i){
+    for(size_t i = 0; i < disk.size(); ++i){
         find_space_flag = false;
         if(disk[i]->next == nullptr && disk[i]->file_name == ""){
             pre_index_allocator = i;
-            for(int j = i; j < logic_blocks_num_cin + (pre_index_allocator); ++j){
+            for(size_t j = i; int(j) < logic_blocks_num_cin + (pre_index_allocator); ++j){
                 if(j < disk.size() && disk[j]->next == nullptr && disk[j]->file_name == "") {
                     find_space_flag = true;
-                    if(j == logic_blocks_num_cin + pre_index_allocator) break;
+                    if(int(j) == logic_blocks_num_cin + pre_index_allocator) break;
                 }else{
                     find_space_flag = false;
                     break;
@@ -199,7 +200,7 @@ void contiguousFileCreate(vb &disk){
             if(find_space_flag) break;
         }
     }
-    if((find_space_flag && ((pre_index_allocator + logic_blocks_num_cin) <= (disk.size())))){
+    if((find_space_flag && (size_t(pre_index_allocator + logic_blocks_num_cin) <= (disk.size())))){
         string avaliable_color = findAvaliableColor();
         for(int i = pre_index_allocator; i < logic_blocks_num_cin + pre_index_allocator; ++i){
             disk[i]->blocks_length = logic_blocks_num_cin;
@@ -212,7 +213,7 @@ void contiguousFileCreate(vb &disk){
         } 
     }
     showDiskMemory(disk);
-    if((find_space_flag == false || ((pre_index_allocator + logic_blocks_num_cin) > (disk.size())))) 
+    if((find_space_flag == false || (size_t(pre_index_allocator + logic_blocks_num_cin) > (disk.size())))) 
         cout << WARNING_TEXT << "VOCE NAO TEM ESPACO CONTIGUO DISPONIVEL NO DISCO POR FAVOR EXCLUA ALGUM ARQUIVO\n" << END_COLOR << endl;
 }
 
@@ -221,12 +222,12 @@ void contiguousFileDelete(vb &disk){
     if(file_name_cin != ""){
         deleteFileInDescriptor(file_name_cin);
         cout << endl;
-        for(int i = 0; i < disk.size(); ++i){
+        for(size_t i = 0; i < disk.size(); ++i){
             if(disk[i]->file_name == file_name_cin){
                 used_colors_map[disk[i]->color] = false;
                 int length = disk[i]->blocks_length; 
                 int cont_index = i;
-                for(int j = i; j < i + length; ++j){
+                for(size_t j = i; j < i + length; ++j){
                     delete disk[j];
                     disk[j] = new Block;
                     disk[j]->block_index = cont_index;
@@ -254,7 +255,7 @@ void deleteDeepCopy(vb &deep_copy){
 
 vb deepCopyVector(vb &disk, string specific_file){
     vb deep_copy_disk;
-    for(int i = 0; i < disk.size(); ++i){
+    for(size_t i = 0; i < disk.size(); ++i){
         Block *copy_block = new Block;
         copy_block->block_index = i;
         copy_block->color = EMPTY_BLOCK_COLOR;
@@ -263,7 +264,7 @@ vb deepCopyVector(vb &disk, string specific_file){
         deep_copy_disk.push_back(copy_block);
     }
     int cont = 0;
-    for(int i = 0; i < disk.size(); ++i){
+    for(size_t i = 0; i < disk.size(); ++i){
         if(disk[i]->file_name == specific_file){
             deep_copy_disk[i]->color = disk[i]->color;
             deep_copy_disk[i]->file_name = disk[i]->file_name;
@@ -292,7 +293,6 @@ void recursiveDeleteLinkedFile(vb &disk, Block *block) {
 }
 
 void showSpecificFile(vb &disk){
-    bool file_exist = false;
     string specific_file_name;
     string exit_aux;
     while(true){
@@ -318,10 +318,10 @@ void showSpecificFile(vb &disk){
 
 vector<int> findFreeBlocks(vb &disk, int logic_blocks_num){
     vector<int> free_blocks_vec;
-    for(int i = 0; i < disk.size(); ++i){
+    for(size_t i = 0; i < disk.size(); ++i){
         if(disk[i]->next == nullptr && disk[i]->file_name == ""){
             free_blocks_vec.push_back(i);
-            if(free_blocks_vec.size() == logic_blocks_num) break;
+            if(int(free_blocks_vec.size()) == logic_blocks_num) break;
         }
     }
     return free_blocks_vec;
@@ -334,10 +334,10 @@ void linkedFileCreate(vb &disk){
     logic_blocks_num_cin = fileInfo.logic_blocks_num_info;
     file_name_cin = fileInfo.file_name_info;
     vector<int> free_blocks_vec = findFreeBlocks(disk, logic_blocks_num_cin);
-    if(free_blocks_vec.size() >= logic_blocks_num_cin){
+    if(int(free_blocks_vec.size()) >= logic_blocks_num_cin){
         string avaliableColor = findAvaliableColor();
         int start_block_in_free = free_blocks_vec[0];
-        for(int i = 0; i < free_blocks_vec.size(); ++i){
+        for(size_t i = 0; i < free_blocks_vec.size(); ++i){
             disk[free_blocks_vec[i]]->file_name = file_name_cin;
             disk[free_blocks_vec[i]]->start_block = start_block_in_free;
             disk[free_blocks_vec[i]]->blocks_length = logic_blocks_num_cin;
@@ -347,7 +347,7 @@ void linkedFileCreate(vb &disk){
         }
     }
     showDiskMemory(disk);
-    if(free_blocks_vec.size() < logic_blocks_num_cin) cout << WARNING_TEXT << "VOCE NAO TEM ESPACO DISPONIVEL NO DISCO POR FAVOR EXCLUA ALGUM ARQUIVO\n" << END_COLOR << endl;
+    if(int(free_blocks_vec.size()) < logic_blocks_num_cin) cout << WARNING_TEXT << "VOCE NAO TEM ESPACO DISPONIVEL NO DISCO POR FAVOR EXCLUA ALGUM ARQUIVO\n" << END_COLOR << endl;
     if(file_descriptor.size() > 0) showSpecificFile(disk);
 }
 
@@ -355,7 +355,7 @@ void linkedFileCreate(vb &disk){
 void linkedFileDelete(vb &disk){
     string file_name_cin = verifyFileNameToDelete();
     if(file_name_cin != ""){
-        for(int i = 0; i < disk.size(); ++i){
+        for(size_t i = 0; i < disk.size(); ++i){
             if(disk[i]->file_name == file_name_cin){
                 deleteFileInDescriptor(disk[i]->file_name);
                 used_colors_map[disk[i]->color] = false;
@@ -375,10 +375,10 @@ void indexedFileCreate(vb &disk){
     logic_blocks_num_cin = fileInfo.logic_blocks_num_info;
     file_name_cin = fileInfo.file_name_info;
     vector<int> free_blocks_vec = findFreeBlocks(disk, logic_blocks_num_cin);
-    if(free_blocks_vec.size() >= logic_blocks_num_cin){
+    if(int(free_blocks_vec.size()) >= logic_blocks_num_cin){
         string avaliableColor = findAvaliableColor();
         int start_block_in_free = free_blocks_vec[0];
-        for(int i = 0; i < free_blocks_vec.size(); ++i){
+        for(size_t i = 0; i < free_blocks_vec.size(); ++i){
             disk[free_blocks_vec[i]]->file_name = file_name_cin;
             disk[free_blocks_vec[i]]->start_block = start_block_in_free;
             disk[free_blocks_vec[i]]->blocks_length = logic_blocks_num_cin;
@@ -388,7 +388,7 @@ void indexedFileCreate(vb &disk){
         }
     }
     showDiskMemory(disk);
-    if(free_blocks_vec.size() < logic_blocks_num_cin) cout << WARNING_TEXT << "VOCE NAO TEM ESPACO DISPONIVEL NO DISCO POR FAVOR EXCLUA ALGUM ARQUIVO\n" << END_COLOR << endl;
+    if(int(free_blocks_vec.size()) < logic_blocks_num_cin) cout << WARNING_TEXT << "VOCE NAO TEM ESPACO DISPONIVEL NO DISCO POR FAVOR EXCLUA ALGUM ARQUIVO\n" << END_COLOR << endl;
     if(file_descriptor.size() > 0) showSpecificFile(disk);
 }
 
