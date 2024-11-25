@@ -119,4 +119,6 @@ Outras cores são configuradas no `initColors()`.
 
 ---
 
+https://github.com/lucasbrun196/disk-memory-allocation-
+
 
