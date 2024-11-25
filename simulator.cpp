@@ -2,7 +2,8 @@
 #include <vector>
 #include <map>
 #include <set>
-
+#include <algorithm>
+#include <cctype>
 
 using namespace std;
 
@@ -31,24 +32,23 @@ vb file_descriptor;
 bool isIndexed;
 string global_specific_file;
 
-
 void initColors(){
-    used_colors_map["\033[30m"] = false; // Preto
-    used_colors_map["\033[31m"] = false; // Vermelho
-    used_colors_map["\033[32m"] = false; // Verde
-    used_colors_map["\033[33m"] = false; // Amarelo
-    used_colors_map["\033[34m"] = false; // Azul
-    used_colors_map["\033[35m"] = false; // Magenta
-    used_colors_map["\033[36m"] = false; // Ciano
-    used_colors_map["\033[37m"] = false; // Branco
-    used_colors_map["\033[90m"] = false; // Cinza claro
-    used_colors_map["\033[91m"] = false; // Vermelho claro
-    used_colors_map["\033[92m"] = false; // Verde claro
-    used_colors_map["\033[93m"] = false; // Amarelo claro
-    used_colors_map["\033[94m"] = false; // Azul claro
-    used_colors_map["\033[95m"] = false; // Magenta claro
-    used_colors_map["\033[96m"] = false; // Ciano claro
-    used_colors_map["\033[97m"] = false; // Branco brilhante
+    used_colors_map["\033[30m"] = false;
+    used_colors_map["\033[31m"] = false;
+    used_colors_map["\033[32m"] = false;
+    used_colors_map["\033[33m"] = false;
+    used_colors_map["\033[34m"] = false;
+    used_colors_map["\033[35m"] = false;
+    used_colors_map["\033[36m"] = false;
+    used_colors_map["\033[37m"] = false;
+    used_colors_map["\033[90m"] = false;
+    used_colors_map["\033[91m"] = false;
+    used_colors_map["\033[92m"] = false;
+    used_colors_map["\033[93m"] = false;
+    used_colors_map["\033[94m"] = false;
+    used_colors_map["\033[95m"] = false; 
+    used_colors_map["\033[96m"] = false;
+    used_colors_map["\033[97m"] = false;
 }
 
 bool findInFileDescriptor(string &file_name){
@@ -65,28 +65,38 @@ void deleteFileInDescriptor(string &file_name){
             break;
         }
     }
-}   
+}
+
+int integerTreatment(const string &msg){
+    int integer_cin;
+    while(true){
+        cout << msg;
+        cin >> integer_cin;
+        if(cin.fail()){
+            cin.clear();
+            cin.ignore(numeric_limits<streamsize>::max(), '\n');
+            cout << endl << WARNING_TEXT << "A ENTRADA DEVE SER APENAS INTEIROS" << END_COLOR << endl << endl;
+        }else break;
+    }
+    return integer_cin;
+}
 
 FileInfo cinFileInfo(vb &disk){
-    
     while(true){
         string file_name_cin;
         cout << "DIGITE O NOME DO ARQUIVO: "; cin >> file_name_cin;
         cout << endl;
         if(!findInFileDescriptor(file_name_cin)){
-            int logic_blocks_num_cin;
-            cout << "DIGITE O NUMERO DE BLOCOS LOGICOS QUE SERA OUCUPADO: "; cin >> logic_blocks_num_cin; cout << endl << endl;
+            int logic_blocks_num_cin = integerTreatment("DIGITE O NUMERO DE BLOCOS LOGICOS QUE SERA OCUPADO: ");
             FileInfo fileInfo;
             fileInfo.file_name_info = file_name_cin;
             fileInfo.logic_blocks_num_info = logic_blocks_num_cin;
             return fileInfo;
         }else{
-            cout << WARNING_TEXT << "JA EXISTE UM ARQUIVO COM ESTE NOME" << END_COLOR << endl;
+            cout << WARNING_TEXT << "JA EXISTE UM ARQUIVO COM ESTE NOME" << END_COLOR << endl << endl;
         }
     }
 }
-
-
 
 void showLinkedBlocks(Block *&block){
     if(block == nullptr){
@@ -124,7 +134,7 @@ void showBlock(Block *&block){
 
 void showTableFileInDescriptor(vb &disk){
     for(Block *block: file_descriptor){
-        if(global_specific_file == "") showBlock(block);
+        if(global_specific_file == "")showBlock(block);
         else{
             if(block->file_name == global_specific_file){
                 showBlock(block);
@@ -154,6 +164,16 @@ string findAvaliableColor(){
         }
     }
     return DEFAULT_COLOR;
+}
+
+string verifyFileNameToDelete(){
+    string file_name_cin;
+    cout << "DIGITE O NOME DO ARQUIVO: "; cin >> file_name_cin;
+    if(findInFileDescriptor(file_name_cin)) return file_name_cin;
+    else{
+        cout << endl << WARNING_TEXT << "O ARQUIVO DIGITADO NAO EXISTE" << END_COLOR << endl << endl;
+        return "";
+    } 
 }
 
 void contiguousFileCreate(vb &disk){
@@ -189,42 +209,37 @@ void contiguousFileCreate(vb &disk){
             if(i != logic_blocks_num_cin + pre_index_allocator-1) disk[i]->next = disk[i+1];
             else disk[i]->next = nullptr;
             if(i == pre_index_allocator) file_descriptor.push_back(disk[i]);
-            
         } 
-    }else cout << WARNING_TEXT << "VOCE NAO TEM ESPACO CONTIGUO DISPONIVEL NO DISCO POR FAVOR EXCLUA ALGUM ARQUIVO\n" << END_COLOR << endl;
+    }
     showDiskMemory(disk);
+    if((find_space_flag == false || ((pre_index_allocator + logic_blocks_num_cin) > (disk.size())))) 
+        cout << WARNING_TEXT << "VOCE NAO TEM ESPACO CONTIGUO DISPONIVEL NO DISCO POR FAVOR EXCLUA ALGUM ARQUIVO\n" << END_COLOR << endl;
 }
 
-
-
 void contiguousFileDelete(vb &disk){
-    string file_name_cin;
-    while(true){
-        cout << "DIGITE O NOME DO ARQUIVO: "; cin >> file_name_cin;
-        if(findInFileDescriptor(file_name_cin)) break;
-        else cout << WARNING_TEXT << "O ARQUIVO DIGITADO NAO EXISTE" << END_COLOR << endl;
-    }
-    bool file_was_deleted = false;
-    deleteFileInDescriptor(file_name_cin);
-    cout << endl;
-    for(int i = 0; i < disk.size(); ++i){
-        if(disk[i]->file_name == file_name_cin){
-            used_colors_map[disk[i]->color] = false;
-            int length = disk[i]->blocks_length; 
-            int cont_index = i;
-            for(int j = i; j < i + length; ++j){
-                delete disk[j];
-                disk[j] = new Block;
-                disk[j]->block_index = cont_index;
-                disk[j]->next = nullptr;
-                disk[j]->color = EMPTY_BLOCK_COLOR;
-                disk[j]->file_name = "";
-                cont_index++;
+    string file_name_cin = verifyFileNameToDelete();
+    if(file_name_cin != ""){
+        deleteFileInDescriptor(file_name_cin);
+        cout << endl;
+        for(int i = 0; i < disk.size(); ++i){
+            if(disk[i]->file_name == file_name_cin){
+                used_colors_map[disk[i]->color] = false;
+                int length = disk[i]->blocks_length; 
+                int cont_index = i;
+                for(int j = i; j < i + length; ++j){
+                    delete disk[j];
+                    disk[j] = new Block;
+                    disk[j]->block_index = cont_index;
+                    disk[j]->next = nullptr;
+                    disk[j]->color = EMPTY_BLOCK_COLOR;
+                    disk[j]->file_name = "";
+                    cont_index++;
+                }
             }
         }
+        cout << endl;
+        showDiskMemory(disk);
     }
-    cout << endl;
-    showDiskMemory(disk);
 }
 
 void deleteDeepCopy(vb &deep_copy){
@@ -238,7 +253,6 @@ void deleteDeepCopy(vb &deep_copy){
 
 
 vb deepCopyVector(vb &disk, string specific_file){
-    
     vb deep_copy_disk;
     for(int i = 0; i < disk.size(); ++i){
         Block *copy_block = new Block;
@@ -248,7 +262,6 @@ vb deepCopyVector(vb &disk, string specific_file){
         copy_block->next = nullptr;
         deep_copy_disk.push_back(copy_block);
     }
-    
     int cont = 0;
     for(int i = 0; i < disk.size(); ++i){
         if(disk[i]->file_name == specific_file){
@@ -278,7 +291,7 @@ void recursiveDeleteLinkedFile(vb &disk, Block *block) {
     recursiveDeleteLinkedFile(disk, nextBlock);
 }
 
-void showSpecificLinkedFile(vb &disk){
+void showSpecificFile(vb &disk){
     bool file_exist = false;
     string specific_file_name;
     string exit_aux;
@@ -287,7 +300,6 @@ void showSpecificLinkedFile(vb &disk){
         cin >> specific_file_name;
         exit_aux = specific_file_name;
         transform(exit_aux.begin(), exit_aux.end(), exit_aux.begin(), ::toupper);
-        
         if(exit_aux == "NAO") {
             global_specific_file = "";
             cout << endl;
@@ -303,8 +315,6 @@ void showSpecificLinkedFile(vb &disk){
         }else cout << WARNING_TEXT << "O ARQUIVO DIGITADO NAO EXISTE" << END_COLOR << endl << endl; 
     } 
 }
-
-
 
 vector<int> findFreeBlocks(vb &disk, int logic_blocks_num){
     vector<int> free_blocks_vec;
@@ -338,32 +348,25 @@ void linkedFileCreate(vb &disk){
     }
     showDiskMemory(disk);
     if(free_blocks_vec.size() < logic_blocks_num_cin) cout << WARNING_TEXT << "VOCE NAO TEM ESPACO DISPONIVEL NO DISCO POR FAVOR EXCLUA ALGUM ARQUIVO\n" << END_COLOR << endl;
-    if(file_descriptor.size() > 0) showSpecificLinkedFile(disk);
+    if(file_descriptor.size() > 0) showSpecificFile(disk);
 }
 
 
 void linkedFileDelete(vb &disk){
-    string file_name_cin;
-    while(true){
-        cout << "DIGITE O NOME DO ARQUIVO: "; cin >> file_name_cin;
-        if(findInFileDescriptor(file_name_cin)) break;
-        else cout << WARNING_TEXT << "O ARQUIVO DIGITADO NAO EXISTE" << END_COLOR << endl;
-    }
-    for(int i = 0; i < disk.size(); ++i){
-        if(disk[i]->file_name == file_name_cin){
-            if(i == 0) deleteFileInDescriptor(disk[i]->file_name);
-            used_colors_map[disk[i]->color] = false;
-            recursiveDeleteLinkedFile(disk, disk[i]);
-            break;
+    string file_name_cin = verifyFileNameToDelete();
+    if(file_name_cin != ""){
+        for(int i = 0; i < disk.size(); ++i){
+            if(disk[i]->file_name == file_name_cin){
+                deleteFileInDescriptor(disk[i]->file_name);
+                used_colors_map[disk[i]->color] = false;
+                recursiveDeleteLinkedFile(disk, disk[i]);
+                break;
+            }
         }
+        showDiskMemory(disk);
+        if(file_descriptor.size() > 0) showSpecificFile(disk);
     }
-    showDiskMemory(disk);
-    if(file_descriptor.size() > 0) showSpecificLinkedFile(disk);
-    
-    
 }
-
-
 
 void indexedFileCreate(vb &disk){
     FileInfo fileInfo = cinFileInfo(disk);
@@ -386,56 +389,43 @@ void indexedFileCreate(vb &disk){
     }
     showDiskMemory(disk);
     if(free_blocks_vec.size() < logic_blocks_num_cin) cout << WARNING_TEXT << "VOCE NAO TEM ESPACO DISPONIVEL NO DISCO POR FAVOR EXCLUA ALGUM ARQUIVO\n" << END_COLOR << endl;
-    if(file_descriptor.size() > 0) showSpecificLinkedFile(disk);
+    if(file_descriptor.size() > 0) showSpecificFile(disk);
 }
-
-
 
 void indexedFileDelete(vb &disk){
-    string file_name_cin;
-    while(true){
-        cout << "DIGITE O NOME DO ARQUIVO: "; cin >> file_name_cin;
-        if(findInFileDescriptor(file_name_cin)) break;
-        else cout << WARNING_TEXT << "O ARQUIVO DIGITADO NAO EXISTE" << END_COLOR << endl;
-    }
-
-    for(Block *block : file_descriptor){
-        if(block->file_name == file_name_cin){
-            deleteFileInDescriptor(block->file_name);
-            used_colors_map[block->color] = false;
-            for(Block *blockInSet : block->nexts_blocks){
-                int aux_index = blockInSet->block_index;
-                delete blockInSet;
-                Block *newBlock = new Block;
-                newBlock->block_index = aux_index;
-                newBlock->color = EMPTY_BLOCK_COLOR;
-                newBlock->file_name = "";
-                newBlock->next = nullptr;
-                disk[aux_index] = newBlock;
-                
+    string file_name_cin = verifyFileNameToDelete();
+    if(file_name_cin != ""){
+        for(Block *block : file_descriptor){
+            if(block->file_name == file_name_cin){
+                deleteFileInDescriptor(block->file_name);
+                used_colors_map[block->color] = false;
+                for(Block *blockInSet : block->nexts_blocks){
+                    int aux_index = blockInSet->block_index;
+                    delete blockInSet;
+                    Block *newBlock = new Block;
+                    newBlock->block_index = aux_index;
+                    newBlock->color = EMPTY_BLOCK_COLOR;
+                    newBlock->file_name = "";
+                    newBlock->next = nullptr;
+                    disk[aux_index] = newBlock;
+                }
+                int aux_index_block = block->block_index;
+                delete block;
+                Block *newBlockIndex = new Block;
+                newBlockIndex->block_index = aux_index_block;
+                newBlockIndex->color = EMPTY_BLOCK_COLOR;
+                newBlockIndex->file_name = "";
+                newBlockIndex->next = nullptr;
+                disk[aux_index_block] = newBlockIndex;
+                break;
             }
-            int aux_index_block = block->block_index;
-            delete block;
-            Block *newBlockIndex = new Block;
-            newBlockIndex->block_index = aux_index_block;
-            newBlockIndex->color = EMPTY_BLOCK_COLOR;
-            newBlockIndex->file_name = "";
-            newBlockIndex->next = nullptr;
-            disk[aux_index_block] = newBlockIndex;
-            break;
         }
+        showDiskMemory(disk);
+        if(file_descriptor.size() > 0) showSpecificFile(disk);
     }
-    showDiskMemory(disk);
-    if(file_descriptor.size() > 0) showSpecificLinkedFile(disk);
-
-
-    
-
 }
 
-
 void instructionAllocation(vb &disk, int locType){
-
     vb file_descriptor;
     char file_instruction;
     do{
@@ -443,25 +433,30 @@ void instructionAllocation(vb &disk, int locType){
         cin >> file_instruction;
         file_instruction = toupper(file_instruction);
         cout << endl;
-        if(file_instruction == 'S') break;
-        isIndexed = false;
-        switch (locType){
-        case 1:
-            if(file_instruction == 'C') contiguousFileCreate(disk);
-            else if(file_instruction == 'E') contiguousFileDelete(disk);
-            break;
-        case 2:
-            if(file_instruction == 'C') linkedFileCreate(disk);
-            else if(file_instruction == 'E') linkedFileDelete(disk);
-            break;
-        case 3:
-            isIndexed = true;
-            if(file_instruction == 'C') indexedFileCreate(disk);
-            else if(file_instruction == 'E') indexedFileDelete(disk);
-            break;
-        default:
-            break;
+        if(file_instruction != 'E' && file_instruction != 'C' && file_instruction != 'S'){
+            cout << WARNING_TEXT << "OPCAO INVALIDA DIGITE APENAS (C || E || S)" << END_COLOR << endl << endl;
+        }else{
+            if(file_instruction == 'S') break;
+            isIndexed = false;
+            switch (locType){
+            case 1:
+                if(file_instruction == 'C') contiguousFileCreate(disk);
+                else if(file_instruction == 'E') contiguousFileDelete(disk);
+                break;
+            case 2:
+                if(file_instruction == 'C') linkedFileCreate(disk);
+                else if(file_instruction == 'E') linkedFileDelete(disk);
+                break;
+            case 3:
+                isIndexed = true;
+                if(file_instruction == 'C') indexedFileCreate(disk);
+                else if(file_instruction == 'E') indexedFileDelete(disk);
+                break;
+            default:
+                break;
+            }
         }
+
     } while (true);
 }
 
@@ -470,11 +465,8 @@ int main(){
     int blocks_disk_size, allocation_type;
     vb disk;
     initColors();
-    cout << "QUAL O TAMANHO DO DISCO EM BLOCOS? ";
-    cin >> blocks_disk_size;
+    blocks_disk_size = integerTreatment("QUAL O TAMANHO DO DISCO EM BLOCOS? ");
     cout << endl;
-    
-
     for(int i = 0; i < blocks_disk_size; ++i){
         Block *empty_block = new Block;
         empty_block->block_index = i;
@@ -487,15 +479,12 @@ int main(){
     cout << "   ABAIXO SEU DISCO INICIADO COM NENHUM BLOCO ALOCADO: " << blocks_disk_size << " BLOCOS LIVRES\n";
     cout << "|===============================================================================================|\n";
     showDiskMemory(disk);
-
-    do{
-        cout << "QUAL ESTRATEGIA DE ALOCAO DE VOCE QUER ESCOLHER:" << BOLD_TEXT << "\n1: CONTIGUA\n2: ENCADEADA\n3: INDEXADA\n" << END_COLOR;
-        cout << endl;
-        cout << "SELECIONE UMA OPCAO: ";
-        cin >> allocation_type;
+    while(true){
+        allocation_type = integerTreatment("QUAL ESTRATEGIA DE ALOCAO VOCE QUER ESCOLHER:" + string(BOLD_TEXT) + "\n1: CONTIGUA\n2: ENCADEADA\n3: INDEXADA\n" + END_COLOR);
         cout << endl;
         if(allocation_type == 1 || allocation_type == 2 || allocation_type == 3) break;
-    } while (true);
+        else cout << WARNING_TEXT "OPCAO INVALIDA" << END_COLOR << endl << endl;
+    }
 
     instructionAllocation(disk, allocation_type);  
     return 0;
